@@ -1,0 +1,15 @@
+[package]
+authors = ["Dan Kirkham"]
+description = "1-dimensional convolution library intended for use in DSP applications. "
+documentation = "https://docs.rs/convolution-dsp"
+edition = "2021"
+keywords = ["dsp"]
+license = "MIT"
+name = "convolution-dsp"
+readme = "README.md"
+repository = "https://github.com/dankirkham/convolution-dsp"
+version = "0.1.0"
+
+[dependencies]
+num-complex = "0.4.6"
+rustfft = "6.2.0"
