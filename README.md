@@ -13,7 +13,7 @@ applications. Uses the overlap-add FFT method.
 - ☐ Use realfft when signal and kernel are both f32
 - ☐ f64 support
 - ☐ Fallbacks to non-fft convolution when it is faster
-- ☐ Full or same length output mode, similar to numpy/scipy
+- ☑ Full or same length output mode, similar to numpy/scipy
 - ☐ Threading
 - ☐ Minimize memory allocations
 - ☐ Faster than numpy/scipy

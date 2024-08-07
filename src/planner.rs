@@ -2,6 +2,7 @@ use num_complex::Complex32;
 use rustfft::FftPlanner;
 
 use crate::conv::Conv1d;
+use crate::ConvMode;
 
 pub struct Conv1dPlanner;
 
@@ -10,7 +11,7 @@ impl Conv1dPlanner {
         Self
     }
 
-    pub fn plan_conv1d(&self, kernel: &[f32]) -> Conv1d {
+    pub fn plan_conv1d(&self, kernel: &[f32], mode: ConvMode) -> Conv1d {
         let kernel_len = kernel.len();
         assert!(kernel_len > 1);
 
@@ -29,6 +30,6 @@ impl Conv1dPlanner {
         kernel.extend(vec![Complex32::ZERO; fft_size - kernel.len()]);
         fft.process(&mut kernel);
 
-        Conv1d::new(kernel, kernel_len, fft, ifft)
+        Conv1d::new(kernel, kernel_len, fft, ifft, mode)
     }
 }

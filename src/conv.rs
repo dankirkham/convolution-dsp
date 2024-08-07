@@ -3,11 +3,14 @@ use std::sync::Arc;
 use num_complex::Complex32;
 use rustfft::Fft;
 
+use crate::ConvMode;
+
 pub struct Conv1d {
     kernel: Vec<Complex32>,
     kernel_len: usize,
     fft: Arc<dyn Fft<f32>>,
     ifft: Arc<dyn Fft<f32>>,
+    mode: ConvMode,
 }
 
 impl Conv1d {
@@ -16,28 +19,31 @@ impl Conv1d {
         kernel_len: usize,
         fft: Arc<dyn Fft<f32>>,
         ifft: Arc<dyn Fft<f32>>,
+        mode: ConvMode,
     ) -> Self {
         Self {
             kernel,
             kernel_len,
             fft,
             ifft,
+            mode,
         }
     }
 
     pub fn process(&mut self, mut input: Vec<Complex32>) -> Vec<Complex32> {
+        let input_len = input.len();
         let segment_len = self.fft.len() - self.kernel_len - 1;
-        let segments = ((input.len() as f32) / (segment_len as f32)).ceil() as usize;
+        let segments = ((input_len as f32) / (segment_len as f32)).ceil() as usize;
 
         // When an N sample signal is convolved with an M sample filter kernel, the output signal
         // is N + M + 1 samples long.
         input.extend_from_slice(&vec![Complex32::ZERO; self.kernel_len - 1]);
 
-        let mut output = vec![Complex32::ZERO; input.len()];
+        let mut output = vec![Complex32::ZERO; input_len + self.kernel_len - 1];
 
         let needed_len = segments * segment_len;
-        if input.len() < needed_len {
-            input.extend_from_slice(&vec![Complex32::ZERO; needed_len - input.len()]);
+        if input_len < needed_len {
+            input.extend_from_slice(&vec![Complex32::ZERO; needed_len - input_len]);
         }
 
         let mut segment = Vec::with_capacity(self.fft.len());
@@ -69,6 +75,15 @@ impl Conv1d {
             segment.clear();
         }
 
-        output
+        match self.mode {
+            ConvMode::Full => output,
+            ConvMode::Same => {
+                let target_len = input_len.max(self.kernel_len);
+                let left = (output.len() - target_len) / 2;
+                let right = left + target_len;
+
+                output[left..right].to_vec()
+            }
+        }
     }
 }

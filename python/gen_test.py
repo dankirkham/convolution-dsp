@@ -17,13 +17,13 @@ for _ in range(10):
     print(f"Convolution took {t2 - t1} seconds")
 output = np.complex64(output)
 
-with open("kernel.bin", "wb") as f:
+with open("kernel2.bin", "wb") as f:
     kernel.tofile(f)
 
-with open("signal.bin", "wb") as f:
+with open("signal2.bin", "wb") as f:
     signal.tofile(f)
 
-with open("output.bin", "wb") as f:
+with open("output2.bin", "wb") as f:
     output.tofile(f)
 
 print(signal[10])

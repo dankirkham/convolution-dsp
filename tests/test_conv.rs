@@ -1,9 +1,9 @@
 use std::time::Instant;
 
-use num_complex::Complex32;
 use rand::Rng;
+use num_complex::Complex32;
 
-use convolution_dsp::Conv1dPlanner;
+use convolution_dsp::{ConvMode, Conv1dPlanner};
 use convolution_dsp::file::*;
 
 #[test]
@@ -11,7 +11,7 @@ fn test_dirac() {
     let filter = vec![0., 0., 0., 1., 0., 0., 0.];
 
     let planner = Conv1dPlanner::new();
-    let mut conv = planner.plan_conv1d(&filter);
+    let mut conv = planner.plan_conv1d(&filter, ConvMode::Full);
 
     let signal = vec![
         0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
@@ -38,20 +38,12 @@ fn test_dirac() {
 }
 
 fn conv_with_sizes(filter_len: usize, signal_len: usize) {
-    let mut rng = rand::thread_rng();
-
-    let filter: Vec<_> = (0..filter_len).into_iter().map(|_| rng.gen()).collect();
+    let filter: Vec<_> = (0..filter_len).into_iter().map(|_| 1.).collect();
 
     let planner = Conv1dPlanner::new();
-    let mut conv = planner.plan_conv1d(&filter);
+    let mut conv = planner.plan_conv1d(&filter, ConvMode::Full);
 
-    let re: Vec<_> = (0..signal_len).into_iter().map(|_| rng.gen()).collect();
-    let im: Vec<_> = (0..signal_len).into_iter().map(|_| rng.gen()).collect();
-    let signal: Vec<_> = re
-        .into_iter()
-        .zip(im.into_iter())
-        .map(|(re, im)| Complex32::new(re, im))
-        .collect();
+    let signal: Vec<_> = (0..signal_len).into_iter().map(|_| Complex32::ONE).collect();
 
     let now = Instant::now();
     let actual = conv.process(signal);
@@ -66,7 +58,6 @@ fn test_input_sizes() {
     for _ in 0..10000 {
         let filter_len = rng.gen_range(2..256);
         let signal_len = rng.gen_range(2..256);
-        dbg!(filter_len, signal_len);
         conv_with_sizes(filter_len, signal_len);
     }
 }
@@ -76,11 +67,53 @@ fn test_long() {
     let filter = read_numpy_file_f32("data/kernel.bin").unwrap();
 
     let planner = Conv1dPlanner::new();
-    let mut conv = planner.plan_conv1d(&filter);
+    let mut conv = planner.plan_conv1d(&filter, ConvMode::Full);
 
     let signal = read_numpy_file_c32("data/signal.bin").unwrap();
 
     let expected = read_numpy_file_c32("data/output.bin").unwrap();
+    let now = Instant::now();
+    let actual = conv.process(signal);
+    println!("Convolution took {} ms", now.elapsed().as_millis());
+
+    assert_eq!(actual.len(), expected.len());
+    for i in 0..expected.len() {
+        assert!(actual[i].re.abs() - expected[i].re.abs() < 0.001);
+        assert!(actual[i].im.abs() - expected[i].im.abs() < 0.001);
+    }
+}
+
+#[test]
+fn test_len_even() {
+    let filter = read_numpy_file_f32("data/kernel_even.bin").unwrap();
+
+    let planner = Conv1dPlanner::new();
+    let mut conv = planner.plan_conv1d(&filter, ConvMode::Same);
+
+    let signal = read_numpy_file_c32("data/signal_even.bin").unwrap();
+
+    let expected = read_numpy_file_c32("data/output_even.bin").unwrap();
+    let now = Instant::now();
+    let actual = conv.process(signal);
+    println!("Convolution took {} ms", now.elapsed().as_millis());
+
+    assert_eq!(actual.len(), expected.len());
+    for i in 0..expected.len() {
+        assert!(actual[i].re.abs() - expected[i].re.abs() < 0.001);
+        assert!(actual[i].im.abs() - expected[i].im.abs() < 0.001);
+    }
+}
+
+#[test]
+fn test_len_odd() {
+    let filter = read_numpy_file_f32("data/kernel_odd.bin").unwrap();
+
+    let planner = Conv1dPlanner::new();
+    let mut conv = planner.plan_conv1d(&filter, ConvMode::Same);
+
+    let signal = read_numpy_file_c32("data/signal_odd.bin").unwrap();
+
+    let expected = read_numpy_file_c32("data/output_odd.bin").unwrap();
     let now = Instant::now();
     let actual = conv.process(signal);
     println!("Convolution took {} ms", now.elapsed().as_millis());
