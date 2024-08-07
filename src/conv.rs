@@ -3,11 +3,14 @@ use std::sync::Arc;
 use num_complex::Complex32;
 use rustfft::Fft;
 
+use crate::ConvMode;
+
 pub struct Conv1d {
     kernel: Vec<Complex32>,
     kernel_len: usize,
     fft: Arc<dyn Fft<f32>>,
     ifft: Arc<dyn Fft<f32>>,
+    mode: ConvMode,
 }
 
 impl Conv1d {
@@ -16,12 +19,14 @@ impl Conv1d {
         kernel_len: usize,
         fft: Arc<dyn Fft<f32>>,
         ifft: Arc<dyn Fft<f32>>,
+        mode: ConvMode,
     ) -> Self {
         Self {
             kernel,
             kernel_len,
             fft,
             ifft,
+            mode,
         }
     }
 
@@ -34,15 +39,16 @@ impl Conv1d {
         // is N + M + 1 samples long.
         input.extend_from_slice(&vec![Complex32::ZERO; self.kernel_len - 1]);
 
-        let mut output = vec![Complex32::ZERO; input.len()];
+        let mut output = vec![Complex32::ZERO; input_len + self.kernel_len - 1];
 
-        if input_len % segment_len != 0 {
-            input.extend_from_slice(&vec![Complex32::ZERO; input_len % segment_len]);
+        let needed_len = segments * segment_len;
+        if input_len < needed_len {
+            input.extend_from_slice(&vec![Complex32::ZERO; needed_len - input_len]);
         }
 
+        let mut segment = Vec::with_capacity(self.fft.len());
         for i in 0..segments {
             let offset = i * segment_len;
-            let mut segment = Vec::with_capacity(self.fft.len());
             segment.extend_from_slice(&input[offset..(offset + segment_len)]);
             segment.extend(vec![Complex32::ZERO; self.fft.len() - segment_len]);
 
@@ -65,8 +71,19 @@ impl Conv1d {
                     break;
                 }
             }
+
+            segment.clear();
         }
 
-        output
+        match self.mode {
+            ConvMode::Full => output,
+            ConvMode::Same => {
+                let target_len = input_len.max(self.kernel_len);
+                let left = (output.len() - target_len) / 2;
+                let right = left + target_len;
+
+                output[left..right].to_vec()
+            }
+        }
     }
 }
