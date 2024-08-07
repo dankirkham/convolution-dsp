@@ -12,6 +12,7 @@ impl Conv1dPlanner {
 
     pub fn plan_conv1d(&self, kernel: &[f32]) -> Conv1d {
         let kernel_len = kernel.len();
+        assert!(kernel_len > 1);
 
         // FFT size must be reasonably large to avoid circular convolution
         let fft_size = if kernel_len & (kernel_len - 1) != 0 {
