@@ -25,6 +25,7 @@ name = "convolution-dsp"
 version = "0.1.0"
 dependencies = [
  "num-complex",
+ "num-traits",
  "rand",
  "rustfft",
 ]

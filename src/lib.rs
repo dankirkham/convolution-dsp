@@ -17,6 +17,7 @@
 //! ```
 
 mod conv;
+mod conv_num;
 mod mode;
 mod planner;
 
@@ -24,5 +25,6 @@ mod planner;
 pub mod file;
 
 pub use conv::Conv1d;
+pub use conv_num::ConvNum;
 pub use mode::ConvMode;
 pub use planner::Conv1dPlanner;
