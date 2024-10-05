@@ -45,11 +45,11 @@ impl<T: ConvNum> Conv1d<T> {
             let end = offset + segment_len;
             if end > input.len() {
                 segment.extend_from_slice(&input[offset..input.len()]);
-                segment.extend(vec![Complex::<T>::ZERO; end - input.len()]);
+                segment.extend(std::iter::repeat(Complex::<T>::ZERO).take(end - input.len()));
             } else {
                 segment.extend_from_slice(&input[offset..(offset + segment_len)]);
             }
-            segment.extend(vec![Complex::<T>::ZERO; self.fft.len() - segment_len]);
+            segment.extend(std::iter::repeat(Complex::<T>::ZERO).take(self.fft.len() - segment_len));
             assert_eq!(segment.len(), self.fft.len());
 
             // FFT the segment
