@@ -7,7 +7,7 @@ use convolution_dsp::{Conv1dPlanner, ConvMode};
 
 const KERNEL_SIZE: usize = 1024;
 const SIGNAL_SIZE: usize = 1024 * 64;
-const ITERATIONS: usize = 100;
+const ITERATIONS: usize = 10000;
 
 fn main() {
     let mut rng = rand::thread_rng();
@@ -25,11 +25,14 @@ fn main() {
             .collect();
         conv.process(signal.clone());
     }
+    let elapsed = now.elapsed();
+    let per = elapsed / ITERATIONS as u32;
     println!(
-        "Iterations: {}, Kernel: {}, Signal: {}, Time: {} ms",
+        "Iterations: {}, Kernel: {}, Signal: {}, Total Time: {} ms, Time Per: {} us",
         ITERATIONS,
         KERNEL_SIZE,
         SIGNAL_SIZE,
-        now.elapsed().as_millis()
+        elapsed.as_millis(),
+        per.as_micros(),
     );
 }
