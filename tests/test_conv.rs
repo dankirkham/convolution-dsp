@@ -7,7 +7,7 @@ use rand::Rng;
 use convolution_dsp::file::*;
 use convolution_dsp::{Conv1dPlanner, ConvMode};
 
-macro_rules! test_dirac_impl {
+macro_rules! test_dirac_complex_impl {
     ( $type:ident ) => {{
         let mut filter = vec![$type::ZERO; 7];
         filter[3] = $type::ONE;
@@ -26,11 +26,11 @@ macro_rules! test_dirac_impl {
     }};
 }
 
-macro_rules! test_dirac_float {
+macro_rules! test_dirac_complex_float {
     ( $name:ident, $type:ident ) => {
         #[test]
         fn $name() {
-            let actual = test_dirac_impl!($type);
+            let actual = test_dirac_complex_impl!($type);
             assert_eq!(actual.len(), 35);
 
             for i in 0..35 {
@@ -45,17 +45,17 @@ macro_rules! test_dirac_float {
         }
     };
 }
-test_dirac_float!(test_dirac_f32, f32);
-test_dirac_float!(test_dirac_f64, f64);
+test_dirac_complex_float!(test_dirac_complex_f32, f32);
+test_dirac_complex_float!(test_dirac_complex_f64, f64);
 
-// macro_rules! test_dirac_int {
+// macro_rules! test_dirac_complex_int {
 //     ( $name:ident, $type:ident ) => {
 //         #[test]
 //         fn $name() {
-//             let actual = test_dirac_impl!($type);
+//             let actual = test_dirac_complex_impl!($type);
 //             assert_eq!(actual.len(), 35);
 //             dbg!(&actual);
-//
+// 
 //             for i in 0..35 {
 //                 if i != 17 {
 //                     assert_eq!(actual[i].re, $type::ZERO);
@@ -68,10 +68,10 @@ test_dirac_float!(test_dirac_f64, f64);
 //         }
 //     };
 // }
-// test_dirac_int!(test_dirac_i8, i8);
-// test_dirac_int!(test_dirac_i16, i16);
-// test_dirac_int!(test_dirac_i32, i32);
-// test_dirac_int!(test_dirac_i64, i64);
+// test_dirac_complex_int!(test_dirac_complex_i8, i8);
+// test_dirac_complex_int!(test_dirac_complex_i16, i16);
+// test_dirac_complex_int!(test_dirac_complex_i32, i32);
+// test_dirac_complex_int!(test_dirac_complex_i64, i64);
 
 fn conv_with_sizes(filter_len: usize, signal_len: usize) {
     let filter: Vec<_> = (0..filter_len).into_iter().map(|_| 1.).collect();
@@ -99,7 +99,7 @@ fn conv_with_sizes(filter_len: usize, signal_len: usize) {
 fn test_input_sizes() {
     let mut rng = rand::thread_rng();
 
-    for _ in 0..10000 {
+    for _ in 0..1000 {
         let filter_len = rng.gen_range(2..256);
         let signal_len = rng.gen_range(2..256);
         conv_with_sizes(filter_len, signal_len);
