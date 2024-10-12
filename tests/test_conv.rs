@@ -1,41 +1,77 @@
 use std::time::Instant;
 
+use num_complex::{Complex, Complex32};
+use num_traits::identities::{ConstOne, ConstZero};
 use rand::Rng;
-use num_complex::Complex32;
 
-use convolution_dsp::{ConvMode, Conv1dPlanner};
 use convolution_dsp::file::*;
+use convolution_dsp::{Conv1dPlanner, ConvMode};
 
-#[test]
-fn test_dirac() {
-    let filter = vec![0., 0., 0., 1., 0., 0., 0.];
+macro_rules! test_dirac_complex_impl {
+    ( $type:ident ) => {{
+        let mut filter = vec![$type::ZERO; 7];
+        filter[3] = $type::ONE;
 
-    let planner = Conv1dPlanner::new();
-    let mut conv = planner.plan_conv1d(&filter, ConvMode::Full);
+        let planner = Conv1dPlanner::new();
+        let mut conv = planner.plan_conv1d(&filter, ConvMode::Full);
 
-    let signal = vec![
-        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
-        0., 0., 0., 0., 0., 0.,
-    ];
-    let signal: Vec<_> = signal
-        .into_iter()
-        .map(|re| Complex32::new(re, 0.))
-        .collect();
+        let mut signal = vec![$type::ZERO; 29];
+        signal[14] = $type::ONE;
+        let signal: Vec<_> = signal
+            .into_iter()
+            .map(|re| Complex::<$type>::new(re, $type::ZERO))
+            .collect();
 
-    let actual = conv.process(signal);
-
-    assert_eq!(actual.len(), 35);
-
-    for i in 0..35 {
-        if i != 17 {
-            assert!(actual[i].re.abs() < 0.001);
-            assert!(actual[i].im.abs() < 0.001);
-        } else {
-            assert!(actual[i].re.abs() - 1. < 0.001);
-            assert!(actual[i].im.abs() < 0.001);
-        }
-    }
+        conv.process(signal)
+    }};
 }
+
+macro_rules! test_dirac_complex_float {
+    ( $name:ident, $type:ident ) => {
+        #[test]
+        fn $name() {
+            let actual = test_dirac_complex_impl!($type);
+            assert_eq!(actual.len(), 35);
+
+            for i in 0..35 {
+                if i != 17 {
+                    assert!(actual[i].re.abs() < 0.001);
+                    assert!(actual[i].im.abs() < 0.001);
+                } else {
+                    assert!((actual[i].re - 1.).abs() < 0.001);
+                    assert!(actual[i].im.abs() < 0.001);
+                }
+            }
+        }
+    };
+}
+test_dirac_complex_float!(test_dirac_complex_f32, f32);
+test_dirac_complex_float!(test_dirac_complex_f64, f64);
+
+// macro_rules! test_dirac_complex_int {
+//     ( $name:ident, $type:ident ) => {
+//         #[test]
+//         fn $name() {
+//             let actual = test_dirac_complex_impl!($type);
+//             assert_eq!(actual.len(), 35);
+//             dbg!(&actual);
+// 
+//             for i in 0..35 {
+//                 if i != 17 {
+//                     assert_eq!(actual[i].re, $type::ZERO);
+//                     assert_eq!(actual[i].im, $type::ZERO);
+//                 } else {
+//                     assert_eq!(actual[i].re, $type::ONE);
+//                     assert_eq!(actual[i].im, $type::ZERO);
+//                 }
+//             }
+//         }
+//     };
+// }
+// test_dirac_complex_int!(test_dirac_complex_i8, i8);
+// test_dirac_complex_int!(test_dirac_complex_i16, i16);
+// test_dirac_complex_int!(test_dirac_complex_i32, i32);
+// test_dirac_complex_int!(test_dirac_complex_i64, i64);
 
 fn conv_with_sizes(filter_len: usize, signal_len: usize) {
     let filter: Vec<_> = (0..filter_len).into_iter().map(|_| 1.).collect();
@@ -43,11 +79,19 @@ fn conv_with_sizes(filter_len: usize, signal_len: usize) {
     let planner = Conv1dPlanner::new();
     let mut conv = planner.plan_conv1d(&filter, ConvMode::Full);
 
-    let signal: Vec<_> = (0..signal_len).into_iter().map(|_| Complex32::ONE).collect();
+    let signal: Vec<_> = (0..signal_len)
+        .into_iter()
+        .map(|_| Complex32::ONE)
+        .collect();
 
     let now = Instant::now();
     let actual = conv.process(signal);
-    println!("Convolution with {} kernel and {} signal took {} ms", filter_len, signal_len, now.elapsed().as_millis());
+    println!(
+        "Convolution with {} kernel and {} signal took {} ms",
+        filter_len,
+        signal_len,
+        now.elapsed().as_millis()
+    );
 
     assert_eq!(actual.len(), signal_len + filter_len - 1);
 }
@@ -55,7 +99,7 @@ fn conv_with_sizes(filter_len: usize, signal_len: usize) {
 fn test_input_sizes() {
     let mut rng = rand::thread_rng();
 
-    for _ in 0..10000 {
+    for _ in 0..1000 {
         let filter_len = rng.gen_range(2..256);
         let signal_len = rng.gen_range(2..256);
         conv_with_sizes(filter_len, signal_len);

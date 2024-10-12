@@ -11,7 +11,7 @@ applications. Uses the overlap-add FFT method.
     - ☑ f32 filter kernels
     - ☐ Complex32 filter kernels
 - ☐ Use realfft when signal and kernel are both f32
-- ☐ f64 support
+- ☑ f64 support
 - ☐ Fallbacks to non-fft convolution when it is faster
 - ☑ Full or same length output mode, similar to numpy/scipy
 - ☐ Threading

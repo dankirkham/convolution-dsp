@@ -1,8 +1,8 @@
-use num_complex::Complex32;
+use num_complex::Complex;
 use rustfft::FftPlanner;
 
 use crate::conv::Conv1d;
-use crate::ConvMode;
+use crate::{ConvMode, ConvNum};
 
 pub struct Conv1dPlanner;
 
@@ -11,7 +11,7 @@ impl Conv1dPlanner {
         Self
     }
 
-    pub fn plan_conv1d(&self, kernel: &[f32], mode: ConvMode) -> Conv1d {
+    pub fn plan_conv1d<T: ConvNum>(&self, kernel: &[T], mode: ConvMode) -> Conv1d<T> {
         let kernel_len = kernel.len();
         assert!(kernel_len > 1);
 
@@ -26,10 +26,18 @@ impl Conv1dPlanner {
         let fft = fft_planner.plan_fft_forward(fft_size);
         let ifft = fft_planner.plan_fft_inverse(fft_size);
 
-        let mut kernel: Vec<_> = kernel.iter().map(|re| Complex32::new(*re, 0.)).collect();
-        kernel.extend(vec![Complex32::ZERO; fft_size - kernel.len()]);
+        let mut kernel: Vec<_> = kernel
+            .iter()
+            .map(|re| Complex::<T>::new(*re, T::ZERO))
+            .collect();
+        kernel.extend(vec![Complex::<T>::ZERO; fft_size - kernel.len()]);
         fft.process(&mut kernel);
 
-        Conv1d::new(kernel, kernel_len, fft, ifft, mode)
+        let fft_length = match T::from(fft.len()) {
+            Some(len) => len,
+            None => panic!("Failed to convert usize to T."),
+        };
+
+        Conv1d::new(kernel, kernel_len, fft, ifft, mode, fft_length)
     }
 }
